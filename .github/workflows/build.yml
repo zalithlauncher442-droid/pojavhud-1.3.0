@@ -1,0 +1,900 @@
+​name: Build PojavHUD 1.3.0 Jar
+​on:
+push:
+pull_request:
+workflow_dispatch:
+​jobs:
+build:
+runs-on: ubuntu-latest
+steps:
+# STREAMING_CHUNK:Generating Gradle project files, mod metadata, and Rowlet icon...
+- name: Generate PojavHUD 1.3.0 Project Files
+run: |
+python3 - << 'PYEOF'
+import os, struct, zlib, math
+​os.makedirs("src/main/java/com/pojavhud", exist_ok=True)
+os.makedirs("src/main/resources/assets/pojavhud/lang", exist_ok=True)
+​with open("settings.gradle", "w") as f:
+f.write('pluginManagement {\n  repositories {\n    maven { name = "Fabric"; url = "https://maven.fabricmc.net/" }\n    mavenCentral()\n    gradlePluginPortal()\n  }\n}\n')
+​with open("gradle.properties", "w") as f:
+f.write("org.gradle.jvmargs=-Xmx2G\norg.gradle.parallel=true\norg.gradle.configuration-cache=false\nminecraft_version=1.21.11\nyarn_mappings=1.21.11+build.3\nloader_version=0.18.4\nloom_version=1.14-SNAPSHOT\nversion=1.3.0\ngroup=com.pojavhud\narchives_base_name=pojavhud-1.21.9-1.21.11\nfabric_api_version=0.141.3+1.21.11\nmodmenu_version=17.0.0-beta.1\n")
+​with open("build.gradle", "w") as f:
+f.write('plugins {\n  id "fabric-loom" version "{loom_version}"\n  id "maven-publish"\n}\nversion = project.version\ngroup = project.group\nbase { archivesName = project.archives_base_name }\nrepositories {\n  maven { url = "https://maven.terraformersmc.com/releases/" }\n  maven { url = "https://maven.fabricmc.net/" }\n  mavenCentral()\n}\ndependencies {\n  minecraft "com.mojang:minecraft:{project.minecraft_version}"\n  mappings "net.fabricmc:yarn:{project.yarn_mappings}:v2"\n  modImplementation "net.fabricmc:fabric-loader:{project.loader_version}"\n  modImplementation "net.fabricmc.fabric-api:fabric-api:{project.fabric_api_version}"\n  modCompileOnly "com.terraformersmc:modmenu:{project.modmenu_version}"\n}\nprocessResources {\n  inputs.property "version", project.version\n  filesMatching("fabric.mod.json") { expand "version": project.version }\n}\ntasks.withType(JavaCompile).configureEach { it.options.release = 21 }\njava {\n  withSourcesJar()\n  sourceCompatibility = JavaVersion.VERSION_21\n  targetCompatibility = JavaVersion.VERSION_21\n}\n')
+​with open("src/main/resources/fabric.mod.json", "w") as f:
+f.write('{"schemaVersion":1,"id":"pojavhud","version":"${version}","name":"PojavHUD (1.21.9 - 1.21.11)","description":"Item overlay for PojavLauncher + Built-in PvP Kit Mod (/kit, /pkit, /mkit preview).","authors":["PojavHUD"],"license":"MIT","icon":"assets/pojavhud/icon.png","environment":"client","entrypoints":{"client":["com.pojavhud.PojavHudClient"],"modmenu":["com.pojavhud.ModMenuIntegration"]},"depends":{"fabricloader":">=0.16.0","minecraft":">=1.21.9 <=1.21.11","java":">=21","fabric-api":">=0.100.0"}}\n')
+​with open("src/main/resources/assets/pojavhud/lang/en_us.json", "w") as f:
+f.write('{"key.pojavhud.toggle":"Toggle PojavHUD","key.pojavhud.editor":"Open PojavHUD Editor","key.pojavhud.hidemenus":"Toggle PojavHUD Hide in Menus","key.pojavhud.kitmenu":"Open PojavHUD Kit Menu","category.pojavhud":"PojavHUD","key.category.pojavhud.main":"PojavHUD"}\n')
+​with open("src/main/java/com/pojavhud/ModMenuIntegration.java", "w") as f:
+f.write('package com.pojavhud;\nimport com.terraformersmc.modmenu.api.ConfigScreenFactory;\nimport com.terraformersmc.modmenu.api.ModMenuApi;\npublic class ModMenuIntegration implements ModMenuApi {\n  @Override public ConfigScreenFactory<?> getModConfigScreenFactory() { return parent -> new EditorScreen(); }\n}\n')
+​# STREAMING_CHUNK:Rendering the 128x128 Rowlet Ninja PNG icon...
+w, h = 128, 128
+raw = bytearray()
+sq = lambda a, b: math.pow(a / b, 2)
+for y in range(h):
+raw.append(0)
+for x in range(w):
+c = (223, 186, 150, 255)
+d = sq(x - 64, 46.0) + sq(y - 68, 38.0)
+if d <= 1.08:
+c = (107, 58, 30, 255) if d > 0.95 else ((248, 245, 240, 255) if y > 90 else (217, 174, 134, 255))
+dl, dr = sq(x - 48, 20.0) + sq(y - 68, 18.0), sq(x - 80, 20.0) + sq(y - 68, 18.0)
+if y >= 50 and (dl <= 1.0 or dr <= 1.0):
+c = (107, 58, 30, 255) if (dl > 0.86 and dr > 0.86) else (252, 249, 244, 255)
+if sq(x - 42, 7.5) + sq(y - 76, 3.8) <= 1.0 or sq(x - 86, 7.5) + sq(y - 76, 3.8) <= 1.0:
+c = (242, 139, 130, 255)
+if (36 <= x <= 50 and abs(y - 67) <= 1) or (78 <= x <= 92 and abs(y - 67) <= 1):
+c = (92, 51, 23, 255)
+if 57 <= x <= 71 and 66 <= y <= 81 and abs(x - 64) <= (81 - y) / 2.08:
+c = (217, 107, 67, 255)
+bl, br = sq(x - 52, 13.0) + sq(y - 90, 6.5), sq(x - 76, 13.0) + sq(y - 90, 6.5)
+if bl <= 1.0 or br <= 1.0:
+c = (60, 45, 30, 255) if (bl > 0.78 and br > 0.78) else (61, 139, 116, 255)
+if 36 <= y <= 52 and abs(x - 64) <= 42:
+c = (65, 42, 32, 255) if (y in (36, 37, 51, 52) or abs(x - 64) >= 40) else (75, 91, 171, 255)
+if 37 <= y <= 51 and 40 <= x <= 84:
+c = (95, 82, 28, 255) if (y in (37, 51) or x in (40, 84)) else ((75, 65, 20, 255) if 2.2 <= math.hypot(x - 62, y - 44) <= 4.0 else (204, 198, 104, 255))
+raw.extend(c)
+​chk = lambda t, d: struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+with open("src/main/resources/assets/pojavhud/icon.png", "wb") as f:
+f.write(b"\x89PNG\r\n\x1a\n" + chk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)) + chk(b"IDAT", zlib.compress(bytes(raw), 9)) + chk(b"IEND", b""))
+PYEOF
+​# STREAMING_CHUNK:Writing PojavHudClient.java with HUD optimizations and Kit Mod...
+- name: Write PojavHudClient.java
+run: |
+cat << 'EOF' > src/main/java/com/pojavhud/PojavHudClient.java
+package com.pojavhud;
+​import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.ItemEnchantmentsComponent;
+import net.minecraft.component.type.PotionContentsComponent;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+​# STREAMING_CHUNK:Initializing PojavHudClient keybindings and client tick events...
+public class PojavHudClient implements ClientModInitializer {
+public static final String MOD_ID = "pojavhud";
+public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+public static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"));
+public static KeyBinding toggleKey, editorKey, hideInMenusKey, kitMenuKey;
+public static boolean hudVisible = true;
+public static boolean editorOpen = false;
+public static HudConfig config;
+public static Screen pendingScreen = null;
+​@Override
+public void onInitializeClient() {
+LOGGER.info("PojavHUD 1.3.0 initializing...");
+config = HudConfig.load();
+KitManager.load();
+KitCommand.register();
+toggleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.pojavhud.toggle", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_N, CATEGORY));
+editorKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.pojavhud.editor", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_O, CATEGORY));
+hideInMenusKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.pojavhud.hidemenus", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_H, CATEGORY));
+kitMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.pojavhud.kitmenu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+ClientTickEvents.END_CLIENT_TICK.register(client -> {
+if (pendingScreen != null) {
+Screen target = pendingScreen;
+pendingScreen = null;
+client.setScreen(target);
+}
+while (toggleKey.wasPressed()) {
+hudVisible = !hudVisible;
+if (client.player != null) client.player.sendMessage(Text.literal("§b[PojavHUD] §fHUD: " + (hudVisible ? "§aON" : "§cOFF")), true);
+}
+while (editorKey.wasPressed()) {
+if (client.currentScreen == null) client.setScreen(new EditorScreen());
+}
+while (hideInMenusKey.wasPressed()) {
+config.hideInMenus = !config.hideInMenus;
+config.save();
+if (client.player != null) client.player.sendMessage(Text.literal("§b[PojavHUD] §fHide in Menus: " + (config.hideInMenus ? "§aON" : "§cOFF")), true);
+}
+while (kitMenuKey.wasPressed()) {
+if (client.currentScreen == null) client.setScreen(new KitScreen(null, null));
+}
+if (hudVisible && !editorOpen) {
+HudRenderer.tick(client);
+}
+});
+HudElementRegistry.addLast(Identifier.of(MOD_ID, "overlay"), (context, tickCounter) -> {
+if (hudVisible && !editorOpen) {
+HudRenderer.render(context);
+}
+});
+LOGGER.info("PojavHUD 1.3.0 initialized successfully!");
+}
+}
+​# STREAMING_CHUNK:Defining HudConfig persistence and delay presets...
+class HudConfig {
+private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+private static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve("pojavhud.json");
+public IconConfig[] icons = new IconConfig[9];
+public String delayMode = "HIGH";
+public float customDelay = 0.5f;
+public boolean showItemDecorations = true;
+public boolean hideInMenus = false;
+public boolean editAllIcons = true;
+​public HudConfig() {
+for (int i = 0; i < 9; i++) {
+icons[i] = new IconConfig();
+icons[i].x = 0.35f + i * 0.04f;
+}
+}
+​public static class IconConfig {
+public float x = 0.5f, y = 0.5f, scale = 1.0f, opacity = 1.0f;
+}
+​public long getDelayMs() {
+return switch (delayMode == null ? "HIGH" : delayMode) {
+case "OFF" -> 0L;
+case "MEDIUM" -> 900L;
+case "LOW" -> 1200L;
+case "CUSTOM" -> (long) (Math.max(0f, customDelay) * 1000f);
+default -> 300L;
+};
+}
+​public void cycleDelayMode() {
+delayMode = switch (delayMode == null ? "HIGH" : delayMode) {
+case "OFF" -> "HIGH";
+case "HIGH" -> "MEDIUM";
+case "MEDIUM" -> "LOW";
+case "LOW" -> "CUSTOM";
+default -> "OFF";
+};
+save();
+}
+​public String getDelayButtonText() {
+return switch (delayMode == null ? "HIGH" : delayMode) {
+case "OFF" -> "Opt: Off (0s)";
+case "MEDIUM" -> "Opt: Med (0.9s)";
+case "LOW" -> "Opt: Low (1.2s)";
+case "CUSTOM" -> "Opt: Custom";
+default -> "Opt: High (0.3s)";
+};
+}
+​public static HudConfig load() {
+try {
+if (Files.exists(PATH)) {
+HudConfig c = GSON.fromJson(Files.readString(PATH), HudConfig.class);
+if (c != null && c.icons != null && c.icons.length == 9) return c;
+}
+} catch (Exception ignored) {}
+HudConfig c = new HudConfig();
+c.save();
+return c;
+}
+​public void save() {
+try {
+Files.createDirectories(PATH.getParent());
+Files.writeString(PATH, GSON.toJson(this));
+} catch (Exception ignored) {}
+}
+​public void reset() {
+HudConfig d = new HudConfig();
+this.icons = d.icons;
+this.delayMode = d.delayMode;
+this.customDelay = d.customDelay;
+this.showItemDecorations = d.showItemDecorations;
+this.hideInMenus = d.hideInMenus;
+this.editAllIcons = d.editAllIcons;
+HudRenderer.markLayoutDirty();
+save();
+}
+}
+​# STREAMING_CHUNK:Implementing 20 TPS tick polling and two-pass HudRenderer...
+class HudRenderer {
+private static final ItemStack[] displayed = new ItemStack[9];
+private static final Item[] pending = new Item[9];
+private static final long[] timestamps = new long[9];
+private static final int[] cX = new int[9], cY = new int[9], cSize = new int[9];
+private static final float[] cCX = new float[9], cCY = new float[9];
+private static int lastW = -1, lastH = -1;
+private static boolean dirty = true;
+​static {
+Arrays.fill(displayed, ItemStack.EMPTY);
+Arrays.fill(pending, Items.AIR);
+}
+​public static void markLayoutDirty() { dirty = true; }
+​public static void tick(MinecraftClient client) {
+if (client == null || client.player == null) return;
+PlayerInventory inv = client.player.getInventory();
+long now = System.currentTimeMillis(), delay = PojavHudClient.config.getDelayMs();
+for (int i = 0; i < 9; i++) {
+var ic = PojavHudClient.config.icons[i];
+ItemStack cur = inv.getStack(i);
+if (ic == null || ic.opacity <= 0.01f || cur == null || cur.isEmpty()) {
+displayed[i] = ItemStack.EMPTY;
+pending[i] = Items.AIR;
+continue;
+}
+if (delay <= 0L) {
+displayed[i] = cur;
+pending[i] = cur.getItem();
+} else {
+if (cur.getItem() != pending[i]) {
+pending[i] = cur.getItem();
+timestamps[i] = now;
+}
+if (now - timestamps[i] >= delay) displayed[i] = cur;
+}
+}
+}
+​public static void render(DrawContext ctx) {
+MinecraftClient client = MinecraftClient.getInstance();
+if (client == null || client.player == null || client.options.hudHidden) return;
+if (PojavHudClient.config.hideInMenus && client.currentScreen != null) return;
+int sw = client.getWindow().getScaledWidth(), sh = client.getWindow().getScaledHeight();
+var icons = PojavHudClient.config.icons;
+if (dirty || sw != lastW || sh != lastH) {
+for (int i = 0; i < 9; i++) {
+cSize[i] = (int) (16 * icons[i].scale);
+cX[i] = (int) (icons[i].x * sw) - cSize[i] / 2;
+cY[i] = (int) (icons[i].y * sh) - cSize[i] / 2;
+cCX[i] = cX[i] + cSize[i] * 0.5f;
+cCY[i] = cY[i] + cSize[i] * 0.5f;
+}
+lastW = sw; lastH = sh; dirty = false;
+}
+var m = ctx.getMatrices();
+for (int i = 0; i < 9; i++) {
+if (icons[i].opacity <= 0.01f || displayed[i].isEmpty()) continue;
+m.pushMatrix();
+m.translate(cCX[i], cCY[i]);
+m.scale(icons[i].scale, icons[i].scale);
+m.translate(-8f, -8f);
+ctx.drawItem(displayed[i], 0, 0);
+m.popMatrix();
+}
+TextRenderer tr = client.textRenderer;
+for (int i = 0; i < 9; i++) {
+if (icons[i].opacity <= 0.01f || displayed[i].isEmpty()) continue;
+if (PojavHudClient.config.showItemDecorations && tr != null) {
+m.pushMatrix();
+m.translate(cCX[i], cCY[i]);
+m.scale(icons[i].scale, icons[i].scale);
+m.translate(-8f, -8f);
+ctx.drawStackOverlay(tr, displayed[i], 0, 0);
+m.popMatrix();
+}
+if (icons[i].opacity < 0.99f) {
+int a = Math.min(220, Math.max(0, (int) ((1f - icons[i].opacity) * 220f)));
+ctx.fill(cX[i], cY[i], cX[i] + cSize[i], cY[i] + cSize[i], a << 24);
+}
+}
+}
+}
+​# STREAMING_CHUNK:Building EditorScreen GUI with Target ALL/ONE and Kits Menu button...
+class EditorScreen extends Screen {
+private int sel = 0;
+private boolean drag = false, resize = false;
+private double offX, offY;
+private TextFieldWidget delayField;
+​public EditorScreen() {
+super(Text.literal("PojavHUD Editor"));
+PojavHudClient.editorOpen = true;
+}
+​@Override
+protected void init() {
+int y = this.height - 26;
+this.addDrawableChild(ButtonWidget.builder(Text.literal("§e★ Kits Menu"), b -> this.client.setScreen(new KitScreen(this, null))).dimensions(this.width - 95, 8, 85, 20).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal(tgtText()), b -> {
+PojavHudClient.config.editAllIcons = !PojavHudClient.config.editAllIcons;
+b.setMessage(Text.literal(tgtText()));
+PojavHudClient.config.save();
+}).dimensions(this.width - 185, 8, 85, 20).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Reset"), b -> {
+PojavHudClient.config.reset();
+this.clearAndInit();
+}).dimensions(8, y, 42, 20).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Save"), b -> {
+PojavHudClient.config.save();
+this.close();
+}).dimensions(54, y, 42, 20).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal(PojavHudClient.config.getDelayButtonText()), b -> {
+PojavHudClient.config.cycleDelayMode();
+b.setMessage(Text.literal(PojavHudClient.config.getDelayButtonText()));
+delayField.setVisible("CUSTOM".equals(PojavHudClient.config.delayMode));
+}).dimensions(100, y, 88, 20).build());
+delayField = new TextFieldWidget(this.textRenderer, 192, y, 36, 20, Text.literal("Delay"));
+delayField.setText(String.valueOf(PojavHudClient.config.customDelay));
+delayField.setVisible("CUSTOM".equals(PojavHudClient.config.delayMode));
+delayField.setChangedListener(t -> { try { PojavHudClient.config.customDelay = Math.max(0f, Float.parseFloat(t.trim())); } catch (Exception ignored) {} });
+this.addDrawableChild(delayField);
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Count: " + (PojavHudClient.config.showItemDecorations ? "ON" : "OFF")), b -> {
+PojavHudClient.config.showItemDecorations = !PojavHudClient.config.showItemDecorations;
+b.setMessage(Text.literal("Count: " + (PojavHudClient.config.showItemDecorations ? "ON" : "OFF")));
+PojavHudClient.config.save();
+}).dimensions(232, y, 68, 20).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Size+"), b -> scale(0.1f)).dimensions(304, y, 35, 20).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Size-"), b -> scale(-0.1f)).dimensions(342, y, 35, 20).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Op+"), b -> op(0.1f)).dimensions(380, y, 30, 20).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Op-"), b -> op(-0.1f)).dimensions(413, y, 30, 20).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Prev"), b -> sel = (sel + 8) % 9).dimensions(this.width - 96, y, 42, 20).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Next"), b -> sel = (sel + 1) % 9).dimensions(this.width - 50, y, 42, 20).build());
+}
+​private String tgtText() { return PojavHudClient.config.editAllIcons ? "Target: ALL" : "Target: ONE"; }
+​private void scale(float d) {
+for (int i = 0; i < 9; i++) if (PojavHudClient.config.editAllIcons || i == sel)
+PojavHudClient.config.icons[i].scale = Math.max(0.5f, Math.min(4.0f, PojavHudClient.config.icons[i].scale + d));
+HudRenderer.markLayoutDirty();
+PojavHudClient.config.save();
+}
+​private void op(float d) {
+for (int i = 0; i < 9; i++) if (PojavHudClient.config.editAllIcons || i == sel)
+PojavHudClient.config.icons[i].opacity = Math.max(0.1f, Math.min(1.0f, PojavHudClient.config.icons[i].opacity + d));
+PojavHudClient.config.save();
+}
+​@Override
+public void render(DrawContext ctx, int mx, int my, float delta) {
+ctx.fill(0, 0, this.width, this.height, 0x80000000);
+super.render(ctx, mx, my, delta);
+var icons = PojavHudClient.config.icons;
+var inv = (client != null && client.player != null) ? client.player.getInventory() : null;
+ctx.drawText(this.textRenderer, "Selected: Icon " + (sel + 1) + " | " + tgtText(), 10, 10, 0xFFFFFF, false);
+ctx.drawText(this.textRenderer, String.format("Pos:(%.2f, %.2f) Scale:%.1f Op:%.0f%%", icons[sel].x, icons[sel].y, icons[sel].scale, icons[sel].opacity * 100f), 10, 22, 0xCCCCCC, false);
+for (int i = 0; i < 9; i++) {
+var ic = icons[i];
+int s = Math.max(8, (int) (16 * ic.scale));
+int x = (int) (ic.x * this.width) - s / 2, y = (int) (ic.y * this.height) - s / 2;
+ctx.fill(x - 2, y - 2, x + s + 2, y + s + 2, i == sel ? 0x80FFFF00 : 0x40000000);
+ItemStack st = inv != null ? inv.getStack(i) : ItemStack.EMPTY;
+if (st != null && !st.isEmpty()) {
+var m = ctx.getMatrices();
+m.pushMatrix();
+m.translate(x + s / 2f, y + s / 2f);
+m.scale(ic.scale, ic.scale);
+m.translate(-8f, -8f);
+ctx.drawItem(st, 0, 0);
+if (PojavHudClient.config.showItemDecorations) ctx.drawStackOverlay(this.textRenderer, st, 0, 0);
+m.popMatrix();
+} else {
+ctx.drawCenteredTextWithShadow(this.textRenderer, String.valueOf(i + 1), x + s / 2, y + s / 2 - 4, 0x888888);
+}
+if (ic.opacity < 0.99f) ctx.fill(x, y, x + s, y + s, ((int) ((1f - ic.opacity) * 210f)) << 24);
+if (i == sel) ctx.fill(x + s - 8, y + s - 8, x + s, y + s, 0xFFFFFFFF);
+}
+}
+​@Override
+public boolean mouseClicked(Click click, boolean doubled) {
+if (super.mouseClicked(click, doubled)) return true;
+double mx = click.x(), my = click.y();
+if (click.button() == 0) {
+for (int idx = 0; idx < 9; idx++) {
+int i = (idx == 0) ? sel : (idx <= sel ? idx - 1 : idx);
+var ic = PojavHudClient.config.icons[i];
+int s = Math.max(8, (int) (16 * ic.scale));
+int x = (int) (ic.x * this.width) - s / 2, y = (int) (ic.y * this.height) - s / 2;
+if (i == sel && mx >= x + s - 8 && mx <= x + s && my >= y + s - 8 && my <= y + s) {
+resize = true; return true;
+}
+if (mx >= x && mx <= x + s && my >= y && my <= y + s) {
+sel = i; drag = true;
+offX = mx - ic.x * this.width; offY = my - ic.y * this.height;
+return true;
+}
+}
+}
+return false;
+}
+​@Override
+public boolean mouseReleased(Click click) {
+drag = false; resize = false;
+HudRenderer.markLayoutDirty();
+PojavHudClient.config.save();
+return super.mouseReleased(click);
+}
+​@Override
+public boolean mouseDragged(Click click, double dx, double dy) {
+var ic = PojavHudClient.config.icons[sel];
+if (drag) {
+ic.x = Math.max(0f, Math.min(1f, (float) ((click.x() - offX) / this.width)));
+ic.y = Math.max(0f, Math.min(1f, (float) ((click.y() - offY) / this.height)));
+HudRenderer.markLayoutDirty();
+return true;
+}
+if (resize) {
+double d = Math.max(Math.abs(click.x() - ic.x * this.width), Math.abs(click.y() - ic.y * this.height));
+ic.scale = (float) Math.max(0.5, Math.min(4.0, d / 8.0));
+HudRenderer.markLayoutDirty();
+return true;
+}
+return super.mouseDragged(click, dx, dy);
+}
+​@Override
+public void close() {
+PojavHudClient.editorOpen = false;
+HudRenderer.markLayoutDirty();
+PojavHudClient.config.save();
+super.close();
+}
+​@Override
+public boolean shouldPause() { return false; }
+}
+​# STREAMING_CHUNK:Configuring KitManager with 6 pre-made PvP kits and Smart Hybrid loader...
+class KitManager {
+private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+private static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve("pojavhud_kits.json");
+public static KitConfigFile data = new KitConfigFile();
+​public static class KitConfigFile {
+public boolean clearOnLoad = true;
+public String loadMode = "HYBRID";
+public LinkedHashMap<String, KitData> kits = new LinkedHashMap<>();
+}
+​public static class KitData {
+public String name, description;
+public List<SlotItemData> items = new ArrayList<>();
+public KitData() {}
+public KitData(String n, String d) { name = n; description = d; }
+public KitData add(int slot, String id, int count, String enchOrPot) {
+SlotItemData s = new SlotItemData(slot, id.contains(":") ? id : "minecraft:" + id, count);
+if (enchOrPot != null && !enchOrPot.isEmpty()) {
+for (String part : enchOrPot.split(",")) {
+if (part.startsWith("pot:")) s.potionId = part.substring(4);
+else if (part.contains(":")) {
+String[] kv = part.split(":");
+s.enchantments.put(kv[0], Integer.parseInt(kv[1]));
+}
+}
+}
+items.add(s);
+return this;
+}
+public KitData fill(int from, int to, String id, int count, String enchOrPot) {
+for (int i = from; i <= to; i++) add(i, id, count, enchOrPot);
+return this;
+}
+}
+​public static class SlotItemData {
+public int slot, count = 1, damage = 0;
+public String itemId, customName = null, potionId = null;
+public LinkedHashMap<String, Integer> enchantments = new LinkedHashMap<>();
+public SlotItemData() {}
+public SlotItemData(int s, String id, int c) { slot = s; itemId = id; count = c; }
+}
+​public static void load() {
+try {
+if (Files.exists(PATH)) {
+KitConfigFile f = GSON.fromJson(Files.readString(PATH), KitConfigFile.class);
+if (f != null && f.kits != null && !f.kits.isEmpty()) { data = f; return; }
+}
+} catch (Exception ignored) {}
+resetDefaultKits();
+}
+​public static void save() {
+try {
+Files.createDirectories(PATH.getParent());
+Files.writeString(PATH, GSON.toJson(data));
+} catch (Exception ignored) {}
+}
+​public static void cycleLoadMode() {
+data.loadMode = switch (data.loadMode == null ? "HYBRID" : data.loadMode) {
+case "HYBRID" -> "SORTER";
+case "SORTER" -> "OP_CMD";
+default -> "HYBRID";
+};
+save();
+}
+​public static void resetDefaultKits() {
+data.kits.clear();
+String nArmor = "protection:4,unbreaking:3,mending:1";
+String nBoots = "protection:4,feather_falling:4,depth_strider:3,unbreaking:3,mending:1";
+data.kits.put("axe", new KitData("axe", "Iron Armor + Axe & Shield PvP Kit")
+.add(39,"iron_helmet",1,"").add(38,"iron_chestplate",1,"").add(37,"iron_leggings",1,"").add(36,"iron_boots",1,"").add(40,"shield",1,"")
+.add(0,"iron_axe",1,"").add(1,"iron_sword",1,"").add(2,"crossbow",1,"").add(3,"bow",1,"").add(4,"golden_apple",6,"")
+.add(5,"cooked_beef",64,"").add(6,"shield",1,"").add(7,"cobblestone",64,"").add(8,"oak_planks",64,"").add(9,"arrow",64,""));
+data.kits.put("cpvp", new KitData("cpvp", "Maxed Netherite Crystal & Anchor PvP Kit")
+.add(39,"netherite_helmet",1,nArmor+",respiration:3,aqua_affinity:1").add(38,"netherite_chestplate",1,nArmor)
+.add(37,"netherite_leggings",1,"blast_protection:4,unbreaking:3,mending:1,swift_sneak:3").add(36,"netherite_boots",1,nBoots).add(40,"totem_of_undying",1,"")
+.add(0,"netherite_sword",1,"sharpness:5,knockback:1,unbreaking:3,mending:1,sweeping_edge:3").add(1,"obsidian",64,"").add(2,"end_crystal",64,"")
+.add(3,"respawn_anchor",64,"").add(4,"glowstone",64,"").add(5,"enchanted_golden_apple",64,"").add(6,"ender_pearl",16,"")
+.add(7,"netherite_pickaxe",1,"efficiency:5,unbreaking:3,mending:1").add(8,"totem_of_undying",1,"").fill(9,23,"totem_of_undying",1,"")
+.fill(24,26,"experience_bottle",64,"").fill(27,28,"ender_pearl",16,"").add(29,"end_crystal",64,"").add(30,"obsidian",64,"")
+.add(31,"splash_potion",1,"pot:strong_strength").add(32,"splash_potion",1,"pot:strong_swiftness").fill(33,35,"totem_of_undying",1,""));
+data.kits.put("mace", new KitData("mace", "Elytra + Dual Mace (Density V & Breach IV) + Wind Charges")
+.add(39,"netherite_helmet",1,nArmor).add(38,"elytra",1,"unbreaking:3,mending:1").add(37,"netherite_leggings",1,nArmor).add(36,"netherite_boots",1,nBoots).add(40,"totem_of_undying",1,"")
+.add(0,"mace",1,"density:5,wind_burst:3,unbreaking:3,mending:1").add(1,"mace",1,"breach:4,wind_burst:3,unbreaking:3,mending:1")
+.add(2,"netherite_sword",1,"sharpness:5,unbreaking:3,mending:1").add(3,"wind_charge",64,"").add(4,"firework_rocket",64,"")
+.add(5,"golden_apple",64,"").add(6,"ender_pearl",16,"").add(7,"netherite_chestplate",1,nArmor).add(8,"totem_of_undying",1,"")
+.fill(9,11,"wind_charge",64,"").fill(12,13,"firework_rocket",64,"").fill(14,15,"ender_pearl",16,"").fill(16,27,"totem_of_undying",1,""));
+data.kits.put("neth", new KitData("neth", "Netherite Potion PvP Kit")
+.add(39,"netherite_helmet",1,nArmor).add(38,"netherite_chestplate",1,nArmor).add(37,"netherite_leggings",1,nArmor).add(36,"netherite_boots",1,nBoots).add(40,"totem_of_undying",1,"")
+.add(0,"netherite_sword",1,"sharpness:5,fire_aspect:2,unbreaking:3,mending:1").add(1,"ender_pearl",16,"").add(2,"golden_apple",64,"")
+.fill(3,6,"splash_potion",1,"pot:strong_healing").add(7,"potion",1,"pot:strong_strength").add(8,"potion",1,"pot:strong_swiftness")
+.fill(9,26,"splash_potion",1,"pot:strong_healing").fill(27,30,"totem_of_undying",1,"").add(31,"potion",1,"pot:long_fire_resistance")
+.add(32,"potion",1,"pot:strong_strength").add(33,"potion",1,"pot:strong_swiftness").fill(34,35,"experience_bottle",64,""));
+data.kits.put("smp", new KitData("smp", "SMP Survival Meta Kit")
+.add(39,"netherite_helmet",1,nArmor).add(38,"netherite_chestplate",1,nArmor+",thorns:3").add(37,"netherite_leggings",1,nArmor+",swift_sneak:3").add(36,"netherite_boots",1,nBoots).add(40,"totem_of_undying",1,"")
+.add(0,"netherite_sword",1,"sharpness:5,looting:3,fire_aspect:2,unbreaking:3,mending:1").add(1,"netherite_axe",1,"sharpness:5,efficiency:5,unbreaking:3,mending:1")
+.add(2,"mace",1,"breach:4,wind_burst:3,unbreaking:3,mending:1").add(3,"bow",1,"power:5,punch:2,flame:1,infinity:1,unbreaking:3")
+.add(4,"golden_apple",64,"").add(5,"wind_charge",64,"").add(6,"ender_pearl",16,"").add(7,"elytra",1,"unbreaking:3,mending:1").add(8,"firework_rocket",64,"")
+.add(9,"water_bucket",1,"").add(10,"lava_bucket",1,"").add(11,"shield",1,"unbreaking:3,mending:1").add(12,"netherite_pickaxe",1,"efficiency:5,silk_touch:1,unbreaking:3,mending:1")
+.add(13,"golden_carrot",64,"").add(14,"arrow",64,"").fill(15,26,"totem_of_undying",1,""));
+data.kits.put("uhc", new KitData("uhc", "Diamond UHC Build & PvP Kit")
+.add(39,"diamond_helmet",1,"protection:3,unbreaking:3").add(38,"diamond_chestplate",1,"projectile_protection:3,unbreaking:3")
+.add(37,"diamond_leggings",1,"protection:3,unbreaking:3").add(36,"diamond_boots",1,"protection:3,feather_falling:3,unbreaking:3").add(40,"shield",1,"")
+.add(0,"diamond_sword",1,"sharpness:3").add(1,"diamond_axe",1,"efficiency:3").add(2,"bow",1,"power:3").add(3,"crossbow",1,"quick_charge:2")
+.add(4,"golden_apple",16,"").add(5,"water_bucket",1,"").add(6,"lava_bucket",1,"").add(7,"cobblestone",64,"").add(8,"oak_planks",64,"")
+.add(9,"diamond_pickaxe",1,"efficiency:3").add(10,"water_bucket",1,"").add(11,"lava_bucket",1,"").fill(12,13,"arrow",64,"").add(14,"golden_apple",8,"").add(15,"cooked_beef",64,""));
+save();
+}
+​public static ItemStack createStack(SlotItemData s, DynamicRegistryManager reg) {
+if (s == null || s.itemId == null) return ItemStack.EMPTY;
+Identifier id = Identifier.tryParse(s.itemId.contains(":") ? s.itemId : "minecraft:" + s.itemId);
+if (id == null) return ItemStack.EMPTY;
+Item item = Registries.ITEM.get(id);
+if (item == Items.AIR) return ItemStack.EMPTY;
+ItemStack st = new ItemStack(item, Math.max(1, Math.min(99, s.count)));
+if (s.damage > 0 && st.isDamageable()) st.setDamage(s.damage);
+if (s.customName != null && !s.customName.isEmpty()) st.set(DataComponentTypes.CUSTOM_NAME, Text.literal(s.customName));
+if (s.potionId != null && !s.potionId.isEmpty()) {
+String p = s.potionId.replace("minecraft:", "");
+Registries.POTION.streamEntries().filter(e -> e.registryKey().getValue().getPath().equals(p)).findFirst()
+.ifPresent(e -> st.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(e)));
+}
+if (s.enchantments != null && reg != null) {
+try {
+var er = reg.getOrThrow(RegistryKeys.ENCHANTMENT);
+s.enchantments.forEach((k, lvl) -> er.streamEntries()
+.filter(e -> e.registryKey().getValue().getPath().equals(k.replace("minecraft:", ""))).findFirst()
+.ifPresent(e -> st.addEnchantment(e, lvl)));
+} catch (Exception ignored) {}
+}
+return st;
+}
+​public static String saveCurrentInventoryAsKit(MinecraftClient client, String rawName) {
+if (client == null || client.player == null) return "§cMust be in a world!";
+String key = rawName == null ? "" : rawName.trim().toLowerCase(Locale.ROOT);
+if (key.isEmpty()) return "§cEnter a valid kit name!";
+PlayerInventory inv = client.player.getInventory();
+KitData kit = new KitData(key, "Custom Saved Kit (" + key + ")");
+for (int slot = 0; slot <= 40; slot++) {
+ItemStack st = inv.getStack(slot);
+if (st == null || st.isEmpty()) continue;
+SlotItemData sd = new SlotItemData(slot, Registries.ITEM.getId(st.getItem()).toString(), st.getCount());
+if (st.isDamaged()) sd.damage = st.getDamage();
+if (st.getCustomName() != null) sd.customName = st.getCustomName().getString();
+PotionContentsComponent pc = st.get(DataComponentTypes.POTION_CONTENTS);
+if (pc != null && pc.potion().isPresent()) pc.potion().get().getKey().ifPresent(k -> sd.potionId = k.getValue().getPath());
+ItemEnchantmentsComponent ec = st.getEnchantments();
+if (ec != null) for (RegistryEntry<Enchantment> e : ec.getEnchantments()) e.getKey().ifPresent(k -> sd.enchantments.put(k.getValue().getPath(), ec.getLevel(e)));
+kit.items.add(sd);
+}
+data.kits.put(key, kit);
+save();
+return "§aSaved kit '§e" + key + "§a' (" + kit.items.size() + " slots)!";
+}
+​public static String loadKit(MinecraftClient client, String rawName) {
+if (client == null || client.player == null || client.world == null) return "§cMust be in a world!";
+String key = rawName == null ? "" : rawName.trim().toLowerCase(Locale.ROOT);
+KitData kit = data.kits.get(key);
+if (kit == null) return "§cKit '" + key + "' not found!";
+if ("SORTER".equals(data.loadMode)) return "§a[Sorter] Swapped §e" + sortInv(client, kit) + "§a slots!";
+if ("OP_CMD".equals(data.loadMode)) return "§a[OP Mode] Sent §e" + sendOp(client, kit) + "§a commands!";
+MinecraftServer srv = client.getServer();
+if (srv != null) {
+UUID uuid = client.player.getUuid();
+srv.execute(() -> {
+ServerPlayerEntity sp = srv.getPlayerManager().getPlayer(uuid);
+if (sp != null) {
+if (data.clearOnLoad) for (int i = 0; i <= 40; i++) sp.getInventory().setStack(i, ItemStack.EMPTY);
+for (SlotItemData item : kit.items) sp.getInventory().setStack(item.slot, createStack(item, sp.getRegistryManager()));
+sp.playerScreenHandler.sendContentUpdates();
+}
+});
+return "§a[Singleplayer] Equipped kit '§e" + key + "§a'!";
+}
+if (client.player.isCreative() && client.interactionManager != null) {
+var reg = client.world.getRegistryManager();
+if (data.clearOnLoad) for (int i = 0; i <= 40; i++) {
+client.player.getInventory().setStack(i, ItemStack.EMPTY);
+int p = pktSlot(i);
+if (p != -1) client.interactionManager.clickCreativeStack(ItemStack.EMPTY, p);
+}
+for (SlotItemData item : kit.items) {
+ItemStack st = createStack(item, reg);
+client.player.getInventory().setStack(item.slot, st.copy());
+int p = pktSlot(item.slot);
+if (p != -1) client.interactionManager.clickCreativeStack(st, p);
+}
+return "§a[Creative] Equipped kit '§e" + key + "§a'!";
+}
+int sorted = sortInv(client, kit);
+return sorted > 0 ? "§a[Hybrid Sorter] Sorted §e" + sorted + "§a slots!" : "§e[Hybrid OP] Sent §f" + sendOp(client, kit) + "§e /item commands!";
+}
+​private static int pktSlot(int s) {
+if (s >= 0 && s <= 8) return s + 36;
+if (s >= 9 && s <= 35) return s;
+return switch (s) { case 39 -> 5; case 38 -> 6; case 37 -> 7; case 36 -> 8; case 40 -> 45; default -> -1; };
+}
+​private static int sortInv(MinecraftClient c, KitData kit) {
+if (c.player == null || c.interactionManager == null) return 0;
+PlayerInventory inv = c.player.getInventory();
+int sync = c.player.playerScreenHandler.syncId, swaps = 0;
+for (SlotItemData t : kit.items) {
+if (t.slot < 0 || t.slot > 35) continue;
+Item wanted = Registries.ITEM.get(Identifier.tryParse(t.itemId));
+if (wanted == Items.AIR || inv.getStack(t.slot).isOf(wanted)) continue;
+for (int scan = 0; scan <= 35; scan++) {
+if (scan != t.slot && inv.getStack(scan).isOf(wanted)) {
+int fp = pktSlot(scan), tp = pktSlot(t.slot);
+c.interactionManager.clickSlot(sync, fp, 0, SlotActionType.PICKUP, c.player);
+c.interactionManager.clickSlot(sync, tp, 0, SlotActionType.PICKUP, c.player);
+c.interactionManager.clickSlot(sync, fp, 0, SlotActionType.PICKUP, c.player);
+swaps++; break;
+}
+}
+}
+return swaps;
+}
+​private static int sendOp(MinecraftClient c, KitData kit) {
+if (c.player == null || c.player.networkHandler == null) return 0;
+if (data.clearOnLoad) c.player.networkHandler.sendChatCommand("clear");
+int sent = 0;
+for (SlotItemData it : kit.items) {
+String sn = it.slot <= 8 ? "hotbar." + it.slot : it.slot <= 35 ? "inventory." + (it.slot - 9) :
+switch (it.slot) { case 39 -> "armor.head"; case 38 -> "armor.chest"; case 37 -> "armor.legs"; case 36 -> "armor.feet"; case 40 -> "weapon.offhand"; default -> null; };
+if (sn == null) continue;
+c.player.networkHandler.sendChatCommand("item replace entity @s " + sn + " with " + it.itemId + " " + Math.max(1, it.count));
+sent++;
+}
+return sent;
+}
+}
+​# STREAMING_CHUNK:Registering /kit, /pkit, and /mkit client commands...
+class KitCommand {
+public static void register() {
+ClientCommandRegistrationCallback.EVENT.register((dispatcher, reg) -> {
+for (String cmd : new String[]{"kit", "pkit", "mkit"}) regAlias(dispatcher, cmd);
+});
+}
+​private static void regAlias(CommandDispatcher<FabricClientCommandSource> d, String lit) {
+d.register(ClientCommandManager.literal(lit)
+.executes(c -> { PojavHudClient.pendingScreen = new KitScreen(null, null); return 1; })
+.then(ClientCommandManager.literal("preview")
+.executes(c -> { PojavHudClient.pendingScreen = new KitScreen(null, null); return 1; })
+.then(ClientCommandManager.argument("name", StringArgumentType.word())
+.executes(c -> { PojavHudClient.pendingScreen = new KitScreen(null, StringArgumentType.getString(c, "name")); return 1; })))
+.then(ClientCommandManager.literal("save").then(ClientCommandManager.argument("name", StringArgumentType.word())
+.executes(c -> { c.getSource().sendFeedback(Text.literal("§b[PojavKit] " + KitManager.saveCurrentInventoryAsKit(c.getSource().getClient(), StringArgumentType.getString(c, "name")))); return 1; })))
+.then(ClientCommandManager.literal("load").then(ClientCommandManager.argument("name", StringArgumentType.word())
+.executes(c -> { c.getSource().sendFeedback(Text.literal("§b[PojavKit] " + KitManager.loadKit(c.getSource().getClient(), StringArgumentType.getString(c, "name")))); return 1; })))
+.then(ClientCommandManager.literal("delete").then(ClientCommandManager.argument("name", StringArgumentType.word())
+.executes(c -> {
+String n = StringArgumentType.getString(c, "name").toLowerCase(Locale.ROOT);
+boolean ok = KitManager.data.kits.remove(n) != null;
+if (ok) KitManager.save();
+c.getSource().sendFeedback(Text.literal("§b[PojavKit] " + (ok ? "§aDeleted " + n : "§cNot found")));
+return 1;
+})))
+.then(ClientCommandManager.literal("list").executes(c -> {
+c.getSource().sendFeedback(Text.literal("§b[PojavKit] §fKits: §e" + String.join(", ", KitManager.data.kits.keySet())));
+return 1;
+}))
+.then(ClientCommandManager.literal("reset").executes(c -> {
+KitManager.resetDefaultKits();
+c.getSource().sendFeedback(Text.literal("§b[PojavKit] §aRestored 6 default PvP kits!"));
+return 1;
+})));
+}
+​public static String executeFromMenu(MinecraftClient client, String raw, KitScreen scr) {
+if (raw == null || raw.trim().isEmpty()) return "§cEnter a command!";
+String clean = raw.trim().startsWith("/") ? raw.trim().substring(1).trim() : raw.trim();
+List<String> parts = new ArrayList<>();
+for (String s : clean.split(" ")) if (!s.isEmpty()) parts.add(s);
+if (parts.isEmpty()) return "§cEnter a command!";
+String r = parts.get(0).toLowerCase(Locale.ROOT);
+if (r.equals("kit") || r.equals("pkit") || r.equals("mkit")) {
+if (parts.size() < 2) return "§aSubcommands: load, save, preview, list, delete, reset";
+String sub = parts.get(1).toLowerCase(Locale.ROOT), arg = parts.size() >= 3 ? parts.get(2).toLowerCase(Locale.ROOT) : null;
+return switch (sub) {
+case "load" -> arg != null ? KitManager.loadKit(client, arg) : "§cUsage: /kit load <name>";
+case "save" -> { String m = KitManager.saveCurrentInventoryAsKit(client, arg); if (scr != null && arg != null) scr.selectKit(arg); yield m; }
+case "preview" -> { if (scr != null && arg != null) scr.selectKit(arg); yield "§aPreviewing " + (arg != null ? arg : "kit"); }
+case "delete" -> { if (arg != null && KitManager.data.kits.remove(arg) != null) { KitManager.save(); if (scr != null) scr.refresh(); yield "§aDeleted " + arg; } yield "§cNot found"; }
+case "reset" -> { KitManager.resetDefaultKits(); if (scr != null) scr.refresh(); yield "§aRestored 6 default kits!"; }
+case "list" -> "§fKits: §e" + String.join(", ", KitManager.data.kits.keySet());
+default -> "§cUnknown subcommand: " + sub;
+};
+}
+if (client != null && client.player != null && client.player.networkHandler != null) {
+client.player.networkHandler.sendChatCommand(clean);
+return "§aRan server command: §e/" + clean;
+}
+return "§cJoin a world to run server commands!";
+}
+}
+​# STREAMING_CHUNK:Building KitScreen 41-slot visual preview and command runner GUI...
+class KitScreen extends Screen {
+private final Screen parent;
+private String selKit;
+private String status = "§7Tap a kit to preview, or run any command below!";
+private TextFieldWidget nameField, cmdField;
+private final Map<Integer, ItemStack> preview = new HashMap<>();
+private List<String> keys = new ArrayList<>();
+​public KitScreen(Screen parent, String initKit) {
+super(Text.literal("PojavHUD Kit Menu"));
+this.parent = parent;
+PojavHudClient.editorOpen = true;
+this.keys = new ArrayList<>(KitManager.data.kits.keySet());
+this.selKit = (initKit != null && KitManager.data.kits.containsKey(initKit.toLowerCase(Locale.ROOT)))
+? initKit.toLowerCase(Locale.ROOT) : (keys.isEmpty() ? "cpvp" : keys.get(0));
+}
+​public void selectKit(String k) { this.selKit = k.toLowerCase(Locale.ROOT); refresh(); }
+public void refresh() {
+this.keys = new ArrayList<>(KitManager.data.kits.keySet());
+if (!keys.contains(selKit) && !keys.isEmpty()) selKit = keys.get(0);
+this.clearAndInit();
+}
+​@Override
+protected void init() {
+preview.clear();
+var kit = KitManager.data.kits.get(selKit);
+var reg = (client != null && client.world != null) ? client.world.getRegistryManager() : null;
+if (kit != null) for (var s : kit.items) preview.put(s.slot, KitManager.createStack(s, reg));
+this.addDrawableChild(ButtonWidget.builder(Text.literal(parent != null ? "← Editor" : "Close"), b -> close()).dimensions(8, 6, 70, 18).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Mode: " + KitManager.data.loadMode), b -> {
+KitManager.cycleLoadMode();
+b.setMessage(Text.literal("Mode: " + KitManager.data.loadMode));
+}).dimensions(this.width - 175, 6, 85, 18).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Clear: " + (KitManager.data.clearOnLoad ? "ON" : "OFF")), b -> {
+KitManager.data.clearOnLoad = !KitManager.data.clearOnLoad;
+KitManager.save();
+b.setMessage(Text.literal("Clear: " + (KitManager.data.clearOnLoad ? "ON" : "OFF")));
+}).dimensions(this.width - 86, 6, 78, 18).build());
+int cx = this.width / 2, startX = cx - (Math.min(7, keys.size()) * 50) / 2;
+for (int i = 0; i < Math.min(7, keys.size()); i++) {
+String k = keys.get(i);
+this.addDrawableChild(ButtonWidget.builder(Text.literal(k.equals(selKit) ? "§e[" + k + "]" : k), b -> selectKit(k))
+.dimensions(startX + i * 50, 26, 48, 18).build());
+}
+int ay = this.height - 46;
+this.addDrawableChild(ButtonWidget.builder(Text.literal("§a✔ Load Kit"), b -> status = KitManager.loadKit(client, selKit)).dimensions(cx - 180, ay, 68, 18).build());
+nameField = new TextFieldWidget(this.textRenderer, cx - 108, ay, 58, 18, Text.literal("Name"));
+nameField.setText(selKit);
+this.addDrawableChild(nameField);
+this.addDrawableChild(ButtonWidget.builder(Text.literal("§bSave Inv"), b -> {
+status = KitManager.saveCurrentInventoryAsKit(client, nameField.getText());
+selectKit(nameField.getText());
+}).dimensions(cx - 46, ay, 56, 18).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("§cDelete"), b -> {
+if (KitManager.data.kits.remove(selKit) != null) { KitManager.save(); refresh(); }
+}).dimensions(cx + 14, ay, 48, 18).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Reset 6 Kits"), b -> {
+KitManager.resetDefaultKits();
+status = "§aRestored 6 default PvP kits!";
+refresh();
+}).dimensions(cx + 66, ay, 72, 18).build());
+int cy = this.height - 24;
+cmdField = new TextFieldWidget(this.textRenderer, cx - 150, cy, 210, 18, Text.literal("Command"));
+cmdField.setMaxLength(256);
+cmdField.setText("/mkit preview " + selKit);
+this.addDrawableChild(cmdField);
+this.addDrawableChild(ButtonWidget.builder(Text.literal("§eRun Cmd"), b -> status = KitCommand.executeFromMenu(client, cmdField.getText(), this)).dimensions(cx + 64, cy, 58, 18).build());
+this.addDrawableChild(ButtonWidget.builder(Text.literal("Creative"), b -> status = KitCommand.executeFromMenu(client, "/gamemode creative", this)).dimensions(cx + 126, cy, 54, 18).build());
+}
+​@Override
+public void render(DrawContext ctx, int mx, int my, float delta) {
+ctx.fill(0, 0, this.width, this.height, 0xB0101218);
+super.render(ctx, mx, my, delta);
+int cx = this.width / 2, gx = cx - 81, gy = 60;
+ctx.drawCenteredTextWithShadow(this.textRenderer, "§6§lPojavHUD Kit Manager & Preview", cx, 9, 0xFFFFFF);
+var k = KitManager.data.kits.get(selKit);
+ctx.drawCenteredTextWithShadow(this.textRenderer, "§e" + selKit.toUpperCase(Locale.ROOT) + " §7— " + (k != null ? k.description : ""), cx, 47, 0xCCCCCC);
+ItemStack hov = ItemStack.EMPTY;
+int[] eq = {39, 38, 37, 36, 40};
+String[] lb = {"H", "C", "L", "B", "O"};
+for (int i = 0; i < 5; i++) {
+ItemStack s = slot(ctx, cx - 55 + i * 22, gy, eq[i], lb[i], mx, my, 0x60384860);
+if (!s.isEmpty()) hov = s;
+}
+for (int r = 0; r < 3; r++) for (int c = 0; c < 9; c++) {
+ItemStack s = slot(ctx, gx + c * 18, gy + 22 + r * 18, 9 + r * 9 + c, null, mx, my, 0x55222630);
+if (!s.isEmpty()) hov = s;
+}
+for (int c = 0; c < 9; c++) {
+ItemStack s = slot(ctx, gx + c * 18, gy + 80, c, String.valueOf(c + 1), mx, my, 0x702C3E50);
+if (!s.isEmpty()) hov = s;
+}
+ctx.drawCenteredTextWithShadow(this.textRenderer, status, cx, this.height - 58, 0xFFFFFF);
+if (!hov.isEmpty()) ctx.drawItemTooltip(this.textRenderer, hov, mx, my);
+}
+​private ItemStack slot(DrawContext ctx, int x, int y, int idx, String hint, int mx, int my, int bg) {
+boolean h = mx >= x && mx < x + 18 && my >= y && my < y + 18;
+ctx.fill(x, y, x + 17, y + 17, h ? 0x9066AAFF : bg);
+ctx.drawStrokedRectangle(x, y, 17, 17, h ? 0xFFFFFF00 : 0x60FFFFFF);
+ItemStack st = preview.getOrDefault(idx, ItemStack.EMPTY);
+if (st != null && !st.isEmpty()) {
+ctx.drawItem(st, x + 1, y + 1);
+ctx.drawStackOverlay(this.textRenderer, st, x + 1, y + 1);
+return h ? st : ItemStack.EMPTY;
+} else if (hint != null) ctx.drawCenteredTextWithShadow(this.textRenderer, hint, x + 9, y + 5, 0x55FFFFFF);
+return ItemStack.EMPTY;
+}
+​@Override
+public void close() {
+if (parent != null && client != null) client.setScreen(parent);
+else { PojavHudClient.editorOpen = false; super.close(); }
+}
+​@Override
+public boolean shouldPause() { return false; }
+}
+EOF
+​# STREAMING_CHUNK:Setting up JDK 21, Gradle 9.2.1, and uploading the compiled Jar artifact...
+- name: Set up JDK 21
+uses: actions/setup-java@v4
+with:
+java-version: '21'
+distribution: 'temurin'
+​- name: Setup Gradle
+uses: gradle/actions/setup-gradle@v4
+with:
+gradle-version: '9.2.1'
+​- name: Build with Gradle
+run: gradle build --no-daemon --stacktrace
+​- name: Upload Build Artifact (.jar)
+uses: actions/upload-artifact@v4
+with:
+name: pojavhud-1.3.0-jar
+path: build/libs/pojavhud-1.21.9-1.21.11-1.3.0.jar
